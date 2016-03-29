@@ -162,6 +162,9 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				LLVM_BUILD_DIR = /Users/alexdenisov/Projects/LLVM/build_static;
+				LLVM_LIBS = "-lLLVMCore -lLLVMSupport -ltermcap";
+				LLVM_SOURCE_DIR = /Users/alexdenisov/Projects/LLVM/llvm;
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -200,6 +203,9 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				LLVM_BUILD_DIR = /Users/alexdenisov/Projects/LLVM/build_static;
+				LLVM_LIBS = "-lLLVMCore -lLLVMSupport -ltermcap";
+				LLVM_SOURCE_DIR = /Users/alexdenisov/Projects/LLVM/llvm;
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = macosx;
@@ -209,14 +215,34 @@
 		4642D8E01CAB072400F1FFF2 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					__STDC_CONSTANT_MACROS,
+					__STDC_LIMIT_MACROS,
+				);
+				LIBRARY_SEARCH_PATHS = "$(LLVM_BUILD_DIR)/lib";
+				OTHER_LDFLAGS = (
+					"$(LLVM_LIBS)",
+					"-lc++",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				USER_HEADER_SEARCH_PATHS = "$(LLVM_SOURCE_DIR)/include $(LLVM_BUILD_DIR)/include";
 			};
 			name = Debug;
 		};
 		4642D8E11CAB072400F1FFF2 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					__STDC_CONSTANT_MACROS,
+					__STDC_LIMIT_MACROS,
+				);
+				LIBRARY_SEARCH_PATHS = "$(LLVM_BUILD_DIR)/lib";
+				OTHER_LDFLAGS = (
+					"$(LLVM_LIBS)",
+					"-lc++",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				USER_HEADER_SEARCH_PATHS = "$(LLVM_SOURCE_DIR)/include $(LLVM_BUILD_DIR)/include";
 			};
 			name = Release;
 		};
@@ -239,6 +265,7 @@
 				4642D8E11CAB072400F1FFF2 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

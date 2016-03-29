@@ -8,10 +8,13 @@
 
 #import <Foundation/Foundation.h>
 
+#import "llvm-c/Core.h"
+
 int main(int argc, const char * argv[]) {
     @autoreleasepool {
-        // insert code here...
-        NSLog(@"Hello, World!");
+        LLVMModuleRef module = LLVMModuleCreateWithName("Hello World!");
+        LLVMDumpModule(module);
+        LLVMDisposeModule(module);
     }
     return 0;
 }
