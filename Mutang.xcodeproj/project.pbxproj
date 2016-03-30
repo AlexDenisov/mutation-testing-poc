@@ -8,6 +8,10 @@
 
 /* Begin PBXBuildFile section */
 		4642D8DC1CAB072400F1FFF2 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 4642D8DB1CAB072400F1FFF2 /* main.m */; };
+		6B8760E03061D3B67B643A76 /* ProgramFunction.m in Sources */ = {isa = PBXBuildFile; fileRef = 6B876BC0A1F218F90ABE1B9E /* ProgramFunction.m */; };
+		6B87666C35DE66AB4D26BF21 /* ProgramModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 6B876C9200A35B71F8863F0D /* ProgramModule.m */; };
+		6B876AAE6E2153778DACA22D /* ProgramRegistry.m in Sources */ = {isa = PBXBuildFile; fileRef = 6B8766C2C90ED2B6DBC309FE /* ProgramRegistry.m */; };
+		6B876DD18B70412D3AAC728F /* Driver.m in Sources */ = {isa = PBXBuildFile; fileRef = 6B876F31BEDF4B35E06F671A /* Driver.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -25,6 +29,14 @@
 /* Begin PBXFileReference section */
 		4642D8D81CAB072400F1FFF2 /* Mutang */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Mutang; sourceTree = BUILT_PRODUCTS_DIR; };
 		4642D8DB1CAB072400F1FFF2 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
+		6B8762237355652D721E7623 /* Driver.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Driver.h; sourceTree = "<group>"; };
+		6B8766C2C90ED2B6DBC309FE /* ProgramRegistry.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ProgramRegistry.m; sourceTree = "<group>"; };
+		6B8767285DADBAD2A0BA2236 /* ProgramModule.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ProgramModule.h; sourceTree = "<group>"; };
+		6B8767C86EDA9B8EAF77C9DF /* ProgramRegistry.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ProgramRegistry.h; sourceTree = "<group>"; };
+		6B876BC0A1F218F90ABE1B9E /* ProgramFunction.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ProgramFunction.m; sourceTree = "<group>"; };
+		6B876C9200A35B71F8863F0D /* ProgramModule.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ProgramModule.m; sourceTree = "<group>"; };
+		6B876F22E0F7ACF2E4AD87EA /* ProgramFunction.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ProgramFunction.h; sourceTree = "<group>"; };
+		6B876F31BEDF4B35E06F671A /* Driver.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Driver.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -58,8 +70,32 @@
 			isa = PBXGroup;
 			children = (
 				4642D8DB1CAB072400F1FFF2 /* main.m */,
+				6B876B2826132E9881379BB0 /* Driver */,
+				6B8766320DA57A21C9380E52 /* ProgramRegistry */,
 			);
 			path = Mutang;
+			sourceTree = "<group>";
+		};
+		6B8766320DA57A21C9380E52 /* ProgramRegistry */ = {
+			isa = PBXGroup;
+			children = (
+				6B8767C86EDA9B8EAF77C9DF /* ProgramRegistry.h */,
+				6B8766C2C90ED2B6DBC309FE /* ProgramRegistry.m */,
+				6B8767285DADBAD2A0BA2236 /* ProgramModule.h */,
+				6B876C9200A35B71F8863F0D /* ProgramModule.m */,
+				6B876F22E0F7ACF2E4AD87EA /* ProgramFunction.h */,
+				6B876BC0A1F218F90ABE1B9E /* ProgramFunction.m */,
+			);
+			path = ProgramRegistry;
+			sourceTree = "<group>";
+		};
+		6B876B2826132E9881379BB0 /* Driver */ = {
+			isa = PBXGroup;
+			children = (
+				6B8762237355652D721E7623 /* Driver.h */,
+				6B876F31BEDF4B35E06F671A /* Driver.m */,
+			);
+			path = Driver;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -119,6 +155,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				4642D8DC1CAB072400F1FFF2 /* main.m in Sources */,
+				6B876DD18B70412D3AAC728F /* Driver.m in Sources */,
+				6B876AAE6E2153778DACA22D /* ProgramRegistry.m in Sources */,
+				6B87666C35DE66AB4D26BF21 /* ProgramModule.m in Sources */,
+				6B8760E03061D3B67B643A76 /* ProgramFunction.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -163,7 +203,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				LLVM_BUILD_DIR = /Users/alexdenisov/Projects/LLVM/build_static;
-				LLVM_LIBS = "-lLLVMCore -lLLVMSupport -ltermcap";
+				LLVM_LIBS = "-lLLVMCore -lLLVMSupport -ltermcap -lLLVMBitReader";
 				LLVM_SOURCE_DIR = /Users/alexdenisov/Projects/LLVM/llvm;
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				MTL_ENABLE_DEBUG_INFO = YES;
@@ -204,7 +244,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				LLVM_BUILD_DIR = /Users/alexdenisov/Projects/LLVM/build_static;
-				LLVM_LIBS = "-lLLVMCore -lLLVMSupport -ltermcap";
+				LLVM_LIBS = "-lLLVMCore -lLLVMSupport -ltermcap -lLLVMBitReader";
 				LLVM_SOURCE_DIR = /Users/alexdenisov/Projects/LLVM/llvm;
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				MTL_ENABLE_DEBUG_INFO = NO;

@@ -7,14 +7,15 @@
 //
 
 #import <Foundation/Foundation.h>
-
-#import "llvm-c/Core.h"
+#import "Driver.h"
 
 int main(int argc, const char * argv[]) {
     @autoreleasepool {
-        LLVMModuleRef module = LLVMModuleCreateWithName("Hello World!");
-        LLVMDumpModule(module);
-        LLVMDisposeModule(module);
+        assert(argc == 2);
+        NSString *laboratoryPath = @(argv[1]);
+
+        Driver *driver = [Driver new];
+        [driver startInLaboratory:laboratoryPath];
     }
     return 0;
 }
