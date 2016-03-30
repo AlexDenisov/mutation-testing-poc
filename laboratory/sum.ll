@@ -3,6 +3,11 @@ target datalayout = "e-m:o-i64:64-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-apple-macosx10.11.0"
 
 ; Function Attrs: nounwind ssp uwtable
+define i32 @someUnusedFucntion() #0 {
+  ret i32 42
+}
+
+; Function Attrs: nounwind ssp uwtable
 define i32 @sum(i32 %a, i32 %b) #0 {
   %1 = alloca i32, align 4
   %2 = alloca i32, align 4
