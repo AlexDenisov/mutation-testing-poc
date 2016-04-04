@@ -12,6 +12,8 @@
 #include <stdlib.h>
 
 @import LLVM_C;
+@import LLVM_Utils;
+@import LLVM_Support_DataTypes;
 
 LLVMModuleRef newModule(const char *path) {
     LLVMMemoryBufferRef buffer;
@@ -53,6 +55,14 @@ LLVMValueRef firstTestFromModule(LLVMModuleRef module) {
     return currentFunction;
 }
 
+bool hasSources(const char *functionName) {
+    if (strncmp(functionName, "llvm", strlen("llvm")) == 0) {
+        return false;
+    }
+
+    return true;
+}
+
 const char *firstMutationFunctionNameForTestFunction(LLVMValueRef testFunction) {
     assert(LLVMIsAFunction(testFunction));
     assert(LLVMCountBasicBlocks(testFunction));
@@ -63,20 +73,18 @@ const char *firstMutationFunctionNameForTestFunction(LLVMValueRef testFunction) 
         LLVMValueRef instruction = LLVMGetFirstInstruction(basicBlock);
         while (instruction) {
             if (LLVMIsACallInst(instruction)) {
-                break;
+                assert(LLVMGetNumOperands(instruction));
+
+                int functionOperand = LLVMGetNumOperands(instruction) - 1;
+                LLVMValueRef functionDeclaration = LLVMGetOperand(instruction, functionOperand);
+
+                const char *functionName = LLVMGetValueName(functionDeclaration);
+                if (hasSources(functionName)) {
+                    return functionName;
+                }
             }
 
             instruction = LLVMGetNextInstruction(instruction);
-        }
-
-        if (instruction) {
-            assert(LLVMIsACallInst(instruction));
-            assert(LLVMGetNumOperands(instruction));
-
-            int functionOperand = LLVMGetNumOperands(instruction) - 1;
-            LLVMValueRef functionDeclaration = LLVMGetOperand(instruction, functionOperand);
-
-            return LLVMGetValueName(functionDeclaration);
         }
 
         basicBlock = LLVMGetNextBasicBlock(basicBlock);
@@ -178,7 +186,7 @@ LLVMModuleRef moduleWithMutatedFunction(LLVMModuleRef module, const char *functi
     return mutationModule;
 }
 
-void runFunction(LLVMValueRef function, LLVMModuleRef module, LLVMModuleRef extraModule) {
+unsigned long long runFunction(LLVMValueRef function, LLVMModuleRef module, LLVMModuleRef extraModule) {
     char *error = NULL;
     LLVMExecutionEngineRef executionEngine;
     if (LLVMCreateExecutionEngineForModule(&executionEngine, module, &error) != 0 ) {
@@ -196,11 +204,7 @@ void runFunction(LLVMValueRef function, LLVMModuleRef module, LLVMModuleRef extr
 
     LLVMRemoveModule(executionEngine, extraModule, &_dummy, NULL);
 
-    if (result == 0) {
-        printf("mutant killed\n");
-    } else {
-        printf("mutant not killed\n");
-    }
+    return result;
 }
 
 int main(int argc, const char * argv[]) {
@@ -235,9 +239,16 @@ int main(int argc, const char * argv[]) {
     LLVMLinkInMCJIT();
     LLVMInitializeNativeTarget();
     LLVMInitializeNativeAsmPrinter();
-    
-    runFunction(testFunction, testModule, moduleWithMutation);
-    
+
+    unsigned long long initialResult = runFunction(testFunction, testModule, mutationModule);
+    unsigned long long mutatedResult = runFunction(testFunction, testModule, moduleWithMutation);
+
+    if (initialResult != mutatedResult) {
+        printf("mutant killed\n");
+    } else {
+        printf("mutant survived\n");
+    }
+
     LLVMDisposeModule(testModule);
     LLVMDisposeModule(mutationModule);
     LLVMDisposeModule(moduleWithMutation);
