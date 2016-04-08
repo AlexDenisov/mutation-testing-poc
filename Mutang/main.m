@@ -12,245 +12,319 @@
 #include <stdlib.h>
 
 @import LLVM_C;
-@import LLVM_Utils;
-@import LLVM_Support_DataTypes;
 
 LLVMModuleRef newModule(const char *path) {
-    LLVMMemoryBufferRef buffer;
-    char *message;
-    if (LLVMCreateMemoryBufferWithContentsOfFile(path, &buffer, &message)) {
-        printf("Can't create buffer: %s\n", message);
-        exit(1);
-    }
+  LLVMMemoryBufferRef buffer;
+  char *message;
+  if (LLVMCreateMemoryBufferWithContentsOfFile(path, &buffer, &message)) {
+    printf("Can't create buffer: %s\n", message);
+    exit(1);
+  }
 
-    LLVMModuleRef module;
-    if (LLVMParseBitcode2(buffer, &module)) {
-        printf("Can't get Bitcode\n");
-        exit(1);
-    }
+  LLVMModuleRef module;
+  if (LLVMParseBitcode2(buffer, &module)) {
+    printf("Can't get Bitcode\n");
+    exit(1);
+  }
 
-    LLVMDisposeMemoryBuffer(buffer);
+  LLVMDisposeMemoryBuffer(buffer);
 
-    return module;
+  return module;
 }
 
 LLVMValueRef firstTestFromModule(LLVMModuleRef module) {
-    LLVMValueRef currentFunction = LLVMGetFirstFunction(module);
+  LLVMValueRef currentFunction = LLVMGetFirstFunction(module);
 
-    while (currentFunction) {
-        const char *name = LLVMGetValueName(currentFunction);
-        if (LLVMIsDeclaration(currentFunction)) {
-            // skip declarations, since we interested only in functions with body
-            currentFunction = LLVMGetNextFunction(currentFunction);
-            continue;
-        }
-
-        if (strncmp(name, "test", strlen("test")) == 0) {
-            break;
-        }
-
-        currentFunction = LLVMGetNextFunction(currentFunction);
+  while (currentFunction) {
+    const char *name = LLVMGetValueName(currentFunction);
+    if (LLVMIsDeclaration(currentFunction)) {
+      // skip declarations, since we interested only in functions with body
+      currentFunction = LLVMGetNextFunction(currentFunction);
+      continue;
     }
 
-    return currentFunction;
+    if (strncmp(name, "test", strlen("test")) == 0) {
+      break;
+    }
+
+    currentFunction = LLVMGetNextFunction(currentFunction);
+  }
+
+  return currentFunction;
 }
 
 bool hasSources(const char *functionName) {
-    if (strncmp(functionName, "llvm", strlen("llvm")) == 0) {
-        return false;
-    }
+  if (strncmp(functionName, "llvm", strlen("llvm")) == 0) {
+    return false;
+  }
 
-    return true;
+  return true;
 }
 
 const char *firstMutationFunctionNameForTestFunction(LLVMValueRef testFunction) {
-    assert(LLVMIsAFunction(testFunction));
-    assert(LLVMCountBasicBlocks(testFunction));
+  assert(LLVMIsAFunction(testFunction));
+  assert(LLVMCountBasicBlocks(testFunction));
 
-    LLVMBasicBlockRef basicBlock = LLVMGetFirstBasicBlock(testFunction);
+  LLVMBasicBlockRef basicBlock = LLVMGetFirstBasicBlock(testFunction);
 
-    while (basicBlock) {
-        LLVMValueRef instruction = LLVMGetFirstInstruction(basicBlock);
-        while (instruction) {
-            if (LLVMIsACallInst(instruction)) {
-                assert(LLVMGetNumOperands(instruction));
+  while (basicBlock) {
+    LLVMValueRef instruction = LLVMGetFirstInstruction(basicBlock);
+    while (instruction) {
+      if (LLVMIsACallInst(instruction)) {
+        assert(LLVMGetNumOperands(instruction));
 
-                int functionOperand = LLVMGetNumOperands(instruction) - 1;
-                LLVMValueRef functionDeclaration = LLVMGetOperand(instruction, functionOperand);
+        int functionOperand = LLVMGetNumOperands(instruction) - 1;
+        LLVMValueRef functionDeclaration = LLVMGetOperand(instruction, functionOperand);
 
-                const char *functionName = LLVMGetValueName(functionDeclaration);
-                if (hasSources(functionName)) {
-                    return functionName;
-                }
-            }
-
-            instruction = LLVMGetNextInstruction(instruction);
+        const char *functionName = LLVMGetValueName(functionDeclaration);
+        if (hasSources(functionName)) {
+          return functionName;
         }
+      }
 
-        basicBlock = LLVMGetNextBasicBlock(basicBlock);
+      instruction = LLVMGetNextInstruction(instruction);
     }
 
-    return "";
+    basicBlock = LLVMGetNextBasicBlock(basicBlock);
+  }
+
+  return "";
 }
 
 LLVMModuleRef copyOfModuleWithoutFunction(LLVMModuleRef module, const char *name) {
-    LLVMModuleRef copyOfModule = LLVMCloneModule(module);
-    LLVMValueRef function = LLVMGetNamedFunction(copyOfModule, name);
+  LLVMModuleRef copyOfModule = LLVMCloneModule(module);
+  LLVMValueRef function = LLVMGetNamedFunction(copyOfModule, name);
 
-    LLVMDeleteFunction(function);
+  LLVMDeleteFunction(function);
 
-    return copyOfModule;
+  return copyOfModule;
 }
 
 LLVMModuleRef copyOfModuleWithFunctionOnly(LLVMModuleRef module, const char *functionName) {
-    LLVMModuleRef copyOfModule = LLVMCloneModule(module);
+  LLVMModuleRef copyOfModule = LLVMCloneModule(module);
 
-    LLVMValueRef currentFunction = LLVMGetFirstFunction(copyOfModule);
+  LLVMValueRef currentFunction = LLVMGetFirstFunction(copyOfModule);
 
-    while (currentFunction) {
-        const char *name = LLVMGetValueName(currentFunction);
-        if (LLVMIsDeclaration(currentFunction)) {
-            // skip declarations, since we interested only in functions with body
-            currentFunction = LLVMGetNextFunction(currentFunction);
-            continue;
-        }
-
-        if (strcmp(name, functionName)) {
-            LLVMValueRef functionToDelete = currentFunction;
-            currentFunction = LLVMGetNextFunction(currentFunction);
-            LLVMDeleteFunction(functionToDelete);
-            continue;
-        }
-
-        currentFunction = LLVMGetNextFunction(currentFunction);
+  while (currentFunction) {
+    const char *name = LLVMGetValueName(currentFunction);
+    if (LLVMIsDeclaration(currentFunction)) {
+      // skip declarations, since we interested only in functions with body
+      currentFunction = LLVMGetNextFunction(currentFunction);
+      continue;
     }
 
-    return copyOfModule;
+    if (strcmp(name, functionName)) {
+      LLVMValueRef functionToDelete = currentFunction;
+      currentFunction = LLVMGetNextFunction(currentFunction);
+      LLVMDeleteFunction(functionToDelete);
+      continue;
+    }
+
+    currentFunction = LLVMGetNextFunction(currentFunction);
+  }
+
+  return copyOfModule;
 }
 
-LLVMValueRef mutationAdditionInstruction(LLVMValueRef function) {
-    LLVMBasicBlockRef basicBlock = LLVMGetFirstBasicBlock(function);
+void dumpMetadataRecursively(LLVMValueRef mdNode) {
+  if (!mdNode) {
+    return;
+  }
 
-    while (basicBlock) {
-        LLVMValueRef instruction = LLVMGetFirstInstruction(basicBlock);
-        while (instruction) {
-            if (LLVMIsABinaryOperator(instruction)) {
+//  LLVMDumpValue(mdNode);
 
-                return instruction;
-            }
+  if (DILocationKind == LLVMGetMetadataKind(mdNode)) {
+    printf("%s/%s:%d,%d\n", LLVMGetDILocationDirectory(mdNode), LLVMGetDILocationFilename(mdNode), LLVMGetDILocationLineNumber(mdNode), LLVMGetDILocationColumn(mdNode));
+  }
 
-            instruction = LLVMGetNextInstruction(instruction);
-        }
 
-        basicBlock = LLVMGetNextBasicBlock(basicBlock);
+  if (LLVMIsAMDString(mdNode)) {
+//    unsigned int size = 0;
+//    const char *s = LLVMGetMDString(mdNode, &size);
+//    printf("%d %s\n", LLVMGetMetadataKind(mdNode), s);
+    return;
+  }
+
+  unsigned int numDebugOperands = LLVMGetMDNodeNumOperands(mdNode);
+  if (numDebugOperands) {
+    LLVMValueRef *debugOperands = calloc(numDebugOperands, sizeof(LLVMValueRef));
+    LLVMGetMDNodeOperands(mdNode, debugOperands);
+
+    for (int i = 0; i < numDebugOperands; i++) {
+      dumpMetadataRecursively(debugOperands[i]);
     }
 
-    return NULL;
+    free(debugOperands);
+  }
+}
+
+struct MutationPoint {
+  LLVMValueRef function;
+  LLVMBasicBlockRef basicBlock;
+  LLVMValueRef instruction;
+};
+
+struct MutationPoint mutationPointForMutationFromFunction(LLVMValueRef function) {
+  LLVMBasicBlockRef basicBlock = LLVMGetFirstBasicBlock(function);
+  LLVMValueRef instruction = NULL;
+
+  while (basicBlock) {
+    instruction = LLVMGetFirstInstruction(basicBlock);
+    while (instruction) {
+      if (LLVMIsABinaryOperator(instruction)) {
+        break;
+      }
+
+      instruction = LLVMGetNextInstruction(instruction);
+    }
+
+    if (instruction) {
+      break;
+    }
+
+    basicBlock = LLVMGetNextBasicBlock(basicBlock);
+  }
+
+  struct MutationPoint mutationPoint = { .function = function, .basicBlock = basicBlock, .instruction = instruction };
+  
+  return mutationPoint;
 }
 
 LLVMModuleRef moduleWithMutatedFunction(LLVMModuleRef module, const char *functionName) {
-    LLVMModuleRef mutationModule = copyOfModuleWithFunctionOnly(module, functionName);
+  LLVMModuleRef mutationModule = copyOfModuleWithFunctionOnly(module, functionName);
 
-    LLVMValueRef function = LLVMGetNamedFunction(mutationModule, functionName);
+  LLVMValueRef function = LLVMGetNamedFunction(mutationModule, functionName);
 
-    LLVMBasicBlockRef basicBlock = LLVMGetFirstBasicBlock(function);
-    LLVMValueRef instruction = NULL;
+  LLVMBasicBlockRef basicBlock = LLVMGetFirstBasicBlock(function);
+  LLVMValueRef instruction = NULL;
 
-    while (basicBlock) {
-        instruction = LLVMGetFirstInstruction(basicBlock);
-        while (instruction) {
-            if (LLVMIsABinaryOperator(instruction)) {
-                break;
-            }
+  while (basicBlock) {
+    instruction = LLVMGetFirstInstruction(basicBlock);
+    while (instruction) {
+      if (LLVMIsABinaryOperator(instruction)) {
+        break;
+      }
 
-            instruction = LLVMGetNextInstruction(instruction);
-        }
-
-        if (instruction) {
-            break;
-        }
-
-        basicBlock = LLVMGetNextBasicBlock(basicBlock);
+      instruction = LLVMGetNextInstruction(instruction);
     }
 
-    if (basicBlock && instruction) {
-        LLVMBuilderRef builder = LLVMCreateBuilder();
-        LLVMPositionBuilder(builder, basicBlock, instruction);
-
-        LLVMValueRef mutant = LLVMBuildNSWSub(builder, LLVMGetOperand(instruction, 0), LLVMGetOperand(instruction, 1), LLVMGetValueName(instruction));
-
-        LLVMReplaceAllUsesWith(instruction, mutant);
-        LLVMInstructionEraseFromParent(instruction);
+    if (instruction) {
+      break;
     }
 
-    return mutationModule;
+    basicBlock = LLVMGetNextBasicBlock(basicBlock);
+  }
+
+  if (basicBlock && instruction) {
+    LLVMBuilderRef builder = LLVMCreateBuilder();
+    LLVMPositionBuilder(builder, basicBlock, instruction);
+
+//    if (LLVMHasMetadata(instruction)) {
+//      LLVMValueRef debugMetadata = LLVMGetMetadata(instruction, 0);
+//      dumpMetadataRecursively(LLVMGetCurrentDebugLocation(builder));
+//    }
+
+
+    LLVMValueRef mutant = LLVMBuildNSWSub(builder, LLVMGetOperand(instruction, 0), LLVMGetOperand(instruction, 1), LLVMGetValueName(instruction));
+
+    LLVMReplaceAllUsesWith(instruction, mutant);
+    LLVMInstructionEraseFromParent(instruction);
+  }
+
+  return mutationModule;
 }
 
-unsigned long long runFunction(LLVMValueRef function, LLVMModuleRef module, LLVMModuleRef extraModule) {
-    char *error = NULL;
-    LLVMExecutionEngineRef executionEngine;
-    if (LLVMCreateExecutionEngineForModule(&executionEngine, module, &error) != 0 ) {
-        printf("Can't initialize engine: %s\n", error);
-        // TODO: cleanup all allocated memory ;)
-        exit(1);
-    }
+struct MutationPoint makeMutationAtMutationPoint(struct MutationPoint mutationPoint) {
+  LLVMValueRef function = mutationPoint.function;
+  LLVMBasicBlockRef basicBlock = mutationPoint.basicBlock;
+  LLVMValueRef instruction = mutationPoint.instruction;
 
-    LLVMAddModule(executionEngine, extraModule);
+  LLVMBuilderRef builder = LLVMCreateBuilder();
+  LLVMPositionBuilder(builder, basicBlock, instruction);
 
-    LLVMGenericValueRef value = LLVMRunFunction(executionEngine, function, 0, NULL);
-    unsigned long long result = LLVMGenericValueToInt(value, 0);
+  LLVMValueRef mutant = LLVMBuildNSWSub(builder, LLVMGetOperand(instruction, 0), LLVMGetOperand(instruction, 1), LLVMGetValueName(instruction));
 
-    LLVMModuleRef _dummy;
+  LLVMReplaceAllUsesWith(instruction, mutant);
+  LLVMInstructionEraseFromParent(instruction);
 
-    LLVMRemoveModule(executionEngine, extraModule, &_dummy, NULL);
+  struct MutationPoint mutatedPoint = { .function = function, .basicBlock = basicBlock, .instruction = mutant };
 
-    return result;
+  return mutatedPoint;
+}
+
+unsigned long long runFunction(LLVMValueRef function, LLVMModuleRef modules[], int modulesSize, LLVMModuleRef extraModule) {
+  LLVMModuleRef firstModule = modules[0];
+
+  char *error = NULL;
+  LLVMExecutionEngineRef executionEngine;
+  if (LLVMCreateExecutionEngineForModule(&executionEngine, firstModule, &error) != 0 ) {
+    printf("Can't initialize engine: %s\n", error);
+    // TODO: cleanup all allocated memory ;)
+    exit(1);
+  }
+
+  for (int i = 1; i < modulesSize; i++) {
+    LLVMAddModule(executionEngine, modules[i]);
+  }
+
+  LLVMAddModule(executionEngine, extraModule);
+
+  LLVMGenericValueRef value = LLVMRunFunction(executionEngine, function, 0, NULL);
+  unsigned long long result = LLVMGenericValueToInt(value, 0);
+
+  LLVMModuleRef _dummy;
+
+  LLVMRemoveModule(executionEngine, extraModule, &_dummy, NULL);
+
+  return result;
 }
 
 int main(int argc, const char * argv[]) {
-    assert(argc == 2);
+  assert(argc == 2);
 
-    char testModulePath[100];
-    char mutationModulePath[100];
+  char moduleWithTestPath[100];
+  char moduleWithTesteePath[100];
 
-    const char *laboratoryPath = argv[1];
+  const char *laboratoryPath = argv[1];
 
-    strcpy(testModulePath, laboratoryPath);
-    strcpy(mutationModulePath, laboratoryPath);
+  strcpy(moduleWithTestPath, laboratoryPath);
+  strcpy(moduleWithTesteePath, laboratoryPath);
 
-    strcat(testModulePath, "/main.bc");
-    strcat(mutationModulePath, "/sum.bc");
+  strcat(moduleWithTestPath, "/main.bc");
+  strcat(moduleWithTesteePath, "/sum.bc");
 
-    LLVMModuleRef testModule = newModule(testModulePath);
-    LLVMModuleRef mutationModule = newModule(mutationModulePath);
+  const LLVMModuleRef moduleWithTest = newModule(moduleWithTestPath);
+  const LLVMModuleRef moduleWithTestee = newModule(moduleWithTesteePath);
 
-    LLVMValueRef testFunction = firstTestFromModule(testModule);
-    const char *mutationFunctionName = firstMutationFunctionNameForTestFunction(testFunction);
+  LLVMValueRef testFunction = firstTestFromModule(moduleWithTest);
+  const char *mutationFunctionName = firstMutationFunctionNameForTestFunction(testFunction);
 
-    LLVMModuleRef mutationlessModule = copyOfModuleWithoutFunction(mutationModule, mutationFunctionName);
+  LLVMModuleRef testeeModuleWithoutTestee = copyOfModuleWithoutFunction(moduleWithTestee, mutationFunctionName);
 
-    LLVMModuleRef moduleWithMutation = moduleWithMutatedFunction(mutationModule, mutationFunctionName);
+  LLVMModuleRef moduleWithMutation = copyOfModuleWithFunctionOnly(moduleWithTestee, mutationFunctionName);
 
-    if (LLVMLinkModules2(testModule, mutationlessModule)) {
-        printf("something went wrong\n");
-        exit(1);
-    }
+  LLVMValueRef functionForMutation = LLVMGetNamedFunction(moduleWithMutation, mutationFunctionName);
 
-    LLVMLinkInMCJIT();
-    LLVMInitializeNativeTarget();
-    LLVMInitializeNativeAsmPrinter();
+  struct MutationPoint mutationPoint = mutationPointForMutationFromFunction(functionForMutation);
+  struct MutationPoint mutatedPoint = makeMutationAtMutationPoint(mutationPoint);
 
-    unsigned long long initialResult = runFunction(testFunction, testModule, mutationModule);
-    unsigned long long mutatedResult = runFunction(testFunction, testModule, moduleWithMutation);
+  LLVMLinkInMCJIT();
+  LLVMInitializeNativeTarget();
+  LLVMInitializeNativeAsmPrinter();
 
-    if (initialResult != mutatedResult) {
-        printf("mutant killed\n");
-    } else {
-        printf("mutant survived\n");
-    }
+  LLVMModuleRef modules[] = { moduleWithTest, testeeModuleWithoutTestee };
 
-    LLVMDisposeModule(testModule);
-    LLVMDisposeModule(mutationModule);
-    LLVMDisposeModule(moduleWithMutation);
-    return 0;
+  unsigned long long initialResult = runFunction(testFunction, modules, 2, moduleWithTestee);
+  unsigned long long mutatedResult = runFunction(testFunction, modules, 2, moduleWithMutation);
+
+  if (initialResult != mutatedResult) {
+    printf("mutant killed\n");
+  } else {
+    printf("mutant survived\n");
+  }
+
+  LLVMDisposeModule(moduleWithTest);
+  LLVMDisposeModule(moduleWithTestee);
+  LLVMDisposeModule(moduleWithMutation);
+  return 0;
 }
