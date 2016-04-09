@@ -219,12 +219,17 @@
 					__STDC_CONSTANT_MACROS,
 					__STDC_LIMIT_MACROS,
 				);
-				LIBRARY_SEARCH_PATHS = "$(LLVM_BUILD_DIR)/lib";
+				HEADER_SEARCH_PATHS = /usr/local/include;
+				LIBRARY_SEARCH_PATHS = (
+					"$(LLVM_BUILD_DIR)/lib",
+					/usr/local/lib,
+				);
 				OTHER_LDFLAGS = (
 					"$(LLVM_LIBS)",
 					"-lc++",
 					"-lz",
 					"-ltermcap",
+					"-lgit2",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				USER_HEADER_SEARCH_PATHS = "$(LLVM_SOURCE_DIR)/include $(LLVM_BUILD_DIR)/include";
@@ -238,12 +243,17 @@
 					__STDC_CONSTANT_MACROS,
 					__STDC_LIMIT_MACROS,
 				);
-				LIBRARY_SEARCH_PATHS = "$(LLVM_BUILD_DIR)/lib";
+				HEADER_SEARCH_PATHS = /usr/local/include;
+				LIBRARY_SEARCH_PATHS = (
+					"$(LLVM_BUILD_DIR)/lib",
+					/usr/local/lib,
+				);
 				OTHER_LDFLAGS = (
 					"$(LLVM_LIBS)",
 					"-lc++",
 					"-lz",
 					"-ltermcap",
+					"-lgit2",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				USER_HEADER_SEARCH_PATHS = "$(LLVM_SOURCE_DIR)/include $(LLVM_BUILD_DIR)/include";

@@ -10,6 +10,16 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
+
+#include <git2.h>
+#include <git2/diff.h>
+
+GIT_EXTERN(int) git_diff_print_callback__to_file_handle(
+                                                        const git_diff_delta *delta,
+                                                        const git_diff_hunk *hunk,
+                                                        const git_diff_line *line,
+                                                        void *payload); /**< payload must be a `FILE *` */
 
 @import LLVM_C;
 
@@ -190,50 +200,6 @@ struct MutationPoint mutationPointForMutationFromFunction(LLVMValueRef function)
   return mutationPoint;
 }
 
-LLVMModuleRef moduleWithMutatedFunction(LLVMModuleRef module, const char *functionName) {
-  LLVMModuleRef mutationModule = copyOfModuleWithFunctionOnly(module, functionName);
-
-  LLVMValueRef function = LLVMGetNamedFunction(mutationModule, functionName);
-
-  LLVMBasicBlockRef basicBlock = LLVMGetFirstBasicBlock(function);
-  LLVMValueRef instruction = NULL;
-
-  while (basicBlock) {
-    instruction = LLVMGetFirstInstruction(basicBlock);
-    while (instruction) {
-      if (LLVMIsABinaryOperator(instruction)) {
-        break;
-      }
-
-      instruction = LLVMGetNextInstruction(instruction);
-    }
-
-    if (instruction) {
-      break;
-    }
-
-    basicBlock = LLVMGetNextBasicBlock(basicBlock);
-  }
-
-  if (basicBlock && instruction) {
-    LLVMBuilderRef builder = LLVMCreateBuilder();
-    LLVMPositionBuilder(builder, basicBlock, instruction);
-
-//    if (LLVMHasMetadata(instruction)) {
-//      LLVMValueRef debugMetadata = LLVMGetMetadata(instruction, 0);
-//      dumpMetadataRecursively(LLVMGetCurrentDebugLocation(builder));
-//    }
-
-
-    LLVMValueRef mutant = LLVMBuildNSWSub(builder, LLVMGetOperand(instruction, 0), LLVMGetOperand(instruction, 1), LLVMGetValueName(instruction));
-
-    LLVMReplaceAllUsesWith(instruction, mutant);
-    LLVMInstructionEraseFromParent(instruction);
-  }
-
-  return mutationModule;
-}
-
 struct MutationPoint makeMutationAtMutationPoint(struct MutationPoint mutationPoint) {
   LLVMValueRef function = mutationPoint.function;
   LLVMBasicBlockRef basicBlock = mutationPoint.basicBlock;
@@ -279,6 +245,61 @@ unsigned long long runFunction(LLVMValueRef function, LLVMModuleRef modules[], i
   return result;
 }
 
+char *sourceForModule(LLVMModuleRef module) {
+  const char *directory = LLVMGetModuleDirectory(module);
+  const char *filename = LLVMGetModuleFilename(module);
+
+  char fullname[100];
+  strcpy(fullname, directory);
+  strcat(fullname, "/");
+  strcat(fullname, filename);
+
+  FILE *sourceFile = fopen(fullname, "rb");
+  if (!sourceFile) {
+    printf("can't open file %s: %s\n", fullname, strerror(errno));
+    return NULL;
+  }
+
+  fseek(sourceFile, 0, SEEK_END);
+  long size = ftell(sourceFile);
+  fseek(sourceFile, 0, SEEK_SET);
+
+  char *source = calloc(size, sizeof(char));
+  fread(source, sizeof(char), size, sourceFile);
+
+  fclose(sourceFile);
+
+  return source;
+}
+
+char *highlevelMutantRepresentation(const char *originalSource, struct MutationPoint mutationPoint) {
+  assert(LLVMHasMetadata(mutationPoint.instruction));
+
+  LLVMValueRef metadata = LLVMGetMetadata(mutationPoint.instruction, 0);
+
+  const unsigned int line = LLVMGetDILocationLineNumber(metadata);
+  const unsigned int column = LLVMGetDILocationColumn(metadata);
+
+  char *mutationSource = calloc(strlen(originalSource), sizeof(char));
+  strcpy(mutationSource, originalSource);
+
+  unsigned int currentLine = 1;
+
+  char *curChar = mutationSource;
+  while ( (*(curChar++) != '\0') ) {
+    if (currentLine == line) {
+      *(curChar + column - 1) = '-';
+      break;
+    }
+
+    if (*curChar == '\n') {
+      currentLine++;
+    }
+  }
+
+  return mutationSource;
+}
+
 int main(int argc, const char * argv[]) {
   assert(argc == 2);
 
@@ -306,7 +327,28 @@ int main(int argc, const char * argv[]) {
   LLVMValueRef functionForMutation = LLVMGetNamedFunction(moduleWithMutation, mutationFunctionName);
 
   struct MutationPoint mutationPoint = mutationPointForMutationFromFunction(functionForMutation);
-  struct MutationPoint mutatedPoint = makeMutationAtMutationPoint(mutationPoint);
+  __unused struct MutationPoint mutatedPoint = makeMutationAtMutationPoint(mutationPoint);
+
+  char *originalSource = sourceForModule(moduleWithMutation);
+  char *mutantSource = highlevelMutantRepresentation(originalSource, mutationPoint);
+
+  git_libgit2_init();
+
+  git_patch *patch;
+
+  git_patch_from_buffers(&patch,
+                         originalSource, strlen(originalSource), LLVMGetModuleFilename(moduleWithMutation),
+                         mutantSource, strlen(mutantSource), LLVMGetModuleFilename(moduleWithMutation),
+                         NULL);
+
+  git_patch_print(patch, git_diff_print_callback__to_file_handle, NULL);
+
+  git_patch_free(patch);
+
+  git_libgit2_shutdown();
+
+  free(originalSource);
+  free(mutantSource);
 
   LLVMLinkInMCJIT();
   LLVMInitializeNativeTarget();
@@ -326,5 +368,7 @@ int main(int argc, const char * argv[]) {
   LLVMDisposeModule(moduleWithTest);
   LLVMDisposeModule(moduleWithTestee);
   LLVMDisposeModule(moduleWithMutation);
+  LLVMDisposeModule(testeeModuleWithoutTestee);
+
   return 0;
 }
