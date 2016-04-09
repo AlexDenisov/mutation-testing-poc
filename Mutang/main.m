@@ -13,13 +13,6 @@
 #include <errno.h>
 
 #include <git2.h>
-#include <git2/diff.h>
-
-GIT_EXTERN(int) git_diff_print_callback__to_file_handle(
-                                                        const git_diff_delta *delta,
-                                                        const git_diff_hunk *hunk,
-                                                        const git_diff_line *line,
-                                                        void *payload); /**< payload must be a `FILE *` */
 
 @import LLVM_C;
 
@@ -300,6 +293,41 @@ char *highlevelMutantRepresentation(const char *originalSource, struct MutationP
   return mutationSource;
 }
 
+int mutang_diff_callback(const git_diff_delta *delta,
+                         const git_diff_hunk *hunk,
+                         const git_diff_line *line,
+                         void *payload) {
+  FILE *fp = payload ? payload : stdout;
+
+  if (line->origin == GIT_DIFF_LINE_FILE_HDR) {
+    fwrite("--- ", 1, strlen("--- "), fp);
+    fwrite("a/", 1, strlen("a/"), fp);
+    fwrite(delta->old_file.path, 1, strlen(delta->old_file.path), fp);
+    fwrite("\n", 1, strlen("\n"), fp);
+
+    fwrite("--- ", 1, strlen("--- "), fp);
+    fwrite("b/", 1, strlen("b/"), fp);
+    fwrite(delta->new_file.path, 1, strlen(delta->new_file.path), fp);
+    fwrite("\n", 1, strlen("\n"), fp);
+    return 0;
+  }
+
+  if (line->origin == GIT_DIFF_LINE_HUNK_HDR) {
+    fwrite(line->content, 1, line->content_len, fp);
+    return 0;
+  }
+
+  if (line->origin != GIT_DIFF_LINE_CONTEXT &&
+      line->origin != GIT_DIFF_LINE_ADDITION &&
+      line->origin != GIT_DIFF_LINE_DELETION) {
+    return 0;
+  }
+
+  fputc(line->origin, fp);
+  fwrite(line->content, 1, line->content_len, fp);
+  return 0;
+}
+
 int main(int argc, const char * argv[]) {
   assert(argc == 2);
 
@@ -341,7 +369,7 @@ int main(int argc, const char * argv[]) {
                          mutantSource, strlen(mutantSource), LLVMGetModuleFilename(moduleWithMutation),
                          NULL);
 
-  git_patch_print(patch, git_diff_print_callback__to_file_handle, NULL);
+  git_patch_print(patch, mutang_diff_callback, NULL);
 
   git_patch_free(patch);
 
