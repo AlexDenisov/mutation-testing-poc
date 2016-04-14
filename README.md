@@ -1,3 +1,9 @@
+# LLVM-based Mutation Testing System. Proof of Concept
+
+This is just a proof of concept. It is not intended to be runnable on your machine since it uses 'slightly forked' LLVM.
+
+You can find out more here: http://lowlevelbits.org/llvm-based-mutation-testing-system/
+
 ### High level input
 
 ```c
